@@ -1,2 +1,2 @@
 # All-about-Market
-Self study about stock market
+studying about finance market BTC,Stock,etc...
