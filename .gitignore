@@ -3,6 +3,7 @@ __pycache__/
 .DS_Store
 *.py[cod]
 *$py.class
+author.py
 tempCodeRunnerFile.py
 *.csv
 # C extensions
