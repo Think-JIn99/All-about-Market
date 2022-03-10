@@ -42,7 +42,7 @@ class Upbit():
                 if headers != self.non_auth_headers: #권한이 필요하지 않은 요청의 경우 바로 다시금 요청한다.
                     payload = self.create_payload(query_hash) #uuid를 초기화 해준다.
                     headers = self.get_headers(payload)
-                res = requests.request(method, url, params = query, headers=headers)
+                res = requests.request(method, url, params=query, headers=headers)
                 if (res.status_code == 200) or (res.status_code == 201):  #알맞은 응답이 오기까지 반복한다.
                     json = res.json() #결과를 json형태로 반환한다.
                     return json

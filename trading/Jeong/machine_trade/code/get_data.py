@@ -57,10 +57,10 @@ def run_api(interval, engine, start = None, end = None, tickers = ['QQQ','BTC-US
 
 
 if __name__ =='__main__':
-    engine = author.raw_engine
-    start_1m = datetime.datetime(2021,12,31,0,0)
-    end_1m = datetime.datetime(2022,3,1,23,59)
-    run_api("1m", engine ,start = start_1m, end = end_1m, tickers=['BTC-USD'])
+    engine = author.test_engine
+    start_1m = datetime.datetime(2022,3,1,0,0)
+    end_1m = datetime.datetime(2022,3,7,23,59)
+    run_api("2m", engine ,start = start_1m, end = end_1m, tickers=['BTC-USD'])
 
     # run_api("2m",engine,tickers=['BTC-USD'],period='1mo')
     # run_api("15m",engine,tickers=['BTC-USD'],period='1mo')

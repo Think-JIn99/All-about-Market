@@ -11,6 +11,8 @@ tempCodeRunnerFile.py
 
 # Distribution / packaging
 .Python
+*.joblib
+*.pkl
 build/
 develop-eggs/
 dist/
