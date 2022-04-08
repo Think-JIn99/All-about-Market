@@ -81,11 +81,3 @@ class Upbit():
         url = f"{self.server_url}candles/{candle_type}/?market={ticker}&count={count}"
         response = self.create_request("GET",url, headers=self.non_auth_headers)
         return response
-
-# b = Upbit()
-# print(b.get_order_book("KRW-BTC"))
-# print(b.get_current_price("KRW-BTC"))
-# print(b.get_day_candle("KRW-BTC"))
-# print(b.get_my_account())
-# print(b.create_order('KRW-BTC','bid',100,10000,"limit"))
-

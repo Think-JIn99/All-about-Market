@@ -44,9 +44,9 @@ class BreakOut():
         ticker = "KRW-BTC"
         while True:
             try:
-                if self.check_reset_time():
+                if self.check_reset_time(): #9시인지 확인
                     target_price = self.get_target_price()
-                    self.create_sell_order(ticker)
+                    self.create_sell_order(ticker) #매일 9시에 매도를 실행
                 now_price = self.upbit.get_current_price(ticker)[0]['trade_price']
                 if now_price >= target_price:
                     self.create_buy_order(ticker)
