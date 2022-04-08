@@ -5,7 +5,7 @@ if __name__ == '__main__':
     engine = author.raw_engine
     write_engine = author.processed_engine
     # test_engine = author.test_engine
-    table_list = pd.read_sql("SHOW TABLES",con=engine).values.ravel() #DB에 있는 테이블 이름을 전부 가져옴
+    table_list = pd.read_sql("SHOW TABLES", con=engine).values.ravel() #DB에 있는 테이블 이름을 전부 가져옴
     # table_name = "test_" if engine == author.test_engine else ''
     for t in table_list:
         try:
