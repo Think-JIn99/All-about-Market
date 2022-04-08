@@ -1,11 +1,8 @@
 import datetime
-from operator import index
-from os import pread
 import author
 import yfinance as yf
 import time
 import pandas as pd
-from sqlalchemy import create_engine
 
 def get_data(ticker, interval, start = None, end = None, period = None):
     df = pd.DataFrame({})
@@ -36,7 +33,7 @@ def post_sql(df, ticker, interval , engine):
     table_name = f'{ticker}_{interval}'
     try:
         # df.index.name = 'Date'
-        df.to_sql(table_name, engine, if_exists='replace')
+        df.to_sql(table_name, engine, if_exists='append')
         print(table_name + " inserted in DB sucessfully!!")
 
     except Exception as e:
@@ -57,26 +54,7 @@ def run_api(interval, engine, start = None, end = None, tickers = ['QQQ','BTC-US
 
 
 if __name__ =='__main__':
-    engine = author.test_engine
-    start_1m = datetime.datetime(2022,3,1,0,0)
-    end_1m = datetime.datetime(2022,3,7,23,59)
-    run_api("2m", engine ,start = start_1m, end = end_1m, tickers=['BTC-USD'])
-
-    # run_api("2m",engine,tickers=['BTC-USD'],period='1mo')
-    # run_api("15m",engine,tickers=['BTC-USD'],period='1mo')
-
-
-
-    # start_1h = datetime.datetime(2020,2,23,0,0)
-    # end_1h = datetime.datetime(2022,2,26,23,59)
-    # run_api("1h", start_1h, end_1h, engine)
-
-
-    # start_day = datetime.datetime(2019,12,1,0,0)
-    # end_day = datetime.datetime(2022,2,26,23,59)
-    # run_api("1d", start_day, end_day)
-
-    # engine = author.test_engine
-    # bull_start = datetime.datetime(2020,12,1,0,0)
-    # bull_end = datetime.datetime(2021,4,1,23,59)
-    # run_api('1h', bull_start, bull_end, engine)
+    engine = author.raw_engine
+    start = datetime.datetime(2022,3,23,0,0)
+    end = datetime.datetime(2022,4,6,23,59)
+    run_api("1d", engine ,start = start, end = end, tickers=['BTC-USD','QQQ','TLT','USDT-USD'])
