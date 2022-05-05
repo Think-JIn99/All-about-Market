@@ -22,8 +22,8 @@ class FeatureTransformer():
         gains,drops = delta.copy(), delta.copy()
         gains[gains < 0] = 0
         drops[drops > 0] = 0
-        au = gains.ewm(com=period-1, min_periods=period).mean()
-        ad = drops.abs().ewm(com=period-1, min_periods=period).mean()
+        au = gains.ewm(com=period - 1, min_periods=period).mean()
+        ad = drops.abs().ewm(com=period - 1, min_periods=period).mean()
         rs = au / ad
         rsi = pd.Series(100 - (100 / (1 + rs)))
         return rsi

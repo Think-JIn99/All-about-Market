@@ -9,20 +9,17 @@ def get_data(ticker, interval, start = None, end = None, period = None):
     if period:
         df = yf.download(tickers = ticker, interval = interval, period=period)
         return df
-    
-    period = datetime.timedelta(days=6) if (interval != '1d') else datetime.timedelta(days=30)
-    now_date = start
+    # period = datetime.timedelta(days=6) if (interval != '1d') else datetime.timedelta(days=30)
+    # now_date = start
+    # while now_date <= end:
+    try:
+        data = yf.download(tickers = ticker, interval = interval, start = start, end = end)
+        print(f"{ticker}: {start} ~ {end}, now: {datetime.datetime.now()}")
+        df = pd.concat([df, data])
 
-    while now_date <= end:
-        try:
-            end_ = now_date + period if (end > now_date + period) else end 
-            data = yf.download(tickers = ticker, interval = interval, start = now_date, end = end_)
-            print(f"{ticker}: {now_date} ~ {now_date + period}, now: {datetime.datetime.now()}")
-            df = pd.concat([df,data])
-            now_date += period
-        except Exception as e:
-            time.sleep(3)
-            print(str(e))
+    except Exception as e:
+        time.sleep(3)
+        print(str(e))
     return df
 
 def post_sql(df, ticker, interval , engine):
@@ -42,15 +39,19 @@ def post_sql(df, ticker, interval , engine):
     return
 
 def run_api(interval, engine, start = None, end = None, tickers = ['QQQ','BTC-USD','TLT'], period = None):
-    for t in tickers:
-        if period:
-            df = get_data(ticker = t, interval = interval, period = period)
-        else:
-            df = get_data(ticker = t, interval = interval, start = start, end = end)
-        print(df)
-        post_sql(df, t, interval, engine)
-        print(t + "_" + interval + ' is sucessfully inserted in DB')
-    print('*' * 25)
+    try:
+        for t in tickers:
+            if period:
+                df = get_data(ticker = t, interval = interval, period = period)
+            else:
+                df = get_data(ticker = t, interval = interval, start = start, end = end)
+            print(df)
+            post_sql(df, t, interval, engine)
+            print(t + "_" + interval + ' is sucessfully inserted in DB')
+        print('*' * 25)
+        return True
+    except:
+        return False
 
 
 if __name__ =='__main__':
