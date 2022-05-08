@@ -23,7 +23,7 @@ def get_data(ticker, interval, start = None, end = None, period = None):
     return df
 
 def post_sql(df, ticker, interval , engine):
-    special_char = [':','-','/',"\\"]
+    special_char = [':','-','/',"\\","=","^","%"]
     for c in special_char:
         if c in ticker:
             ticker = ticker.replace(c,'')
@@ -54,8 +54,8 @@ def run_api(interval, engine, start = None, end = None, tickers = ['QQQ','BTC-US
         return False
 
 
-if __name__ =='__main__':
-    engine = author.raw_engine
-    start = datetime.datetime(2022,3,23,0,0)
-    end = datetime.datetime(2022,4,6,23,59)
-    run_api("1d", engine ,start = start, end = end, tickers=['BTC-USD','QQQ','TLT','USDT-USD'])
+# if __name__ =='__main__':
+#     engine = author.raw_engine
+#     start = datetime.datetime(2015,2,28,0,0)
+#     end = datetime.datetime(2022,4,8,23,59)
+#     run_api("1d", engine ,start = start, end = end, tickers=["DX=F"])
