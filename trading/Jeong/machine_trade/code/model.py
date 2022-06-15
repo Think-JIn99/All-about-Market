@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.preprocessing import PolynomialFeatures, MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.compose import TransformedTargetRegressor
 import joblib
@@ -47,12 +47,12 @@ class MyModel():
 
     def create_linear_model(self, model_class, df, target='Price', outlier=False):
         pipeline = Pipeline([
-            ("std_scaler", StandardScaler()),
+            ("max_scaler", MinMaxScaler()),
             ("poly_features",PolynomialFeatures(degree=3, include_bias=True)),
             ('regulator', model_class) #테스트할 모델만 변경해가며 성능을 측정한다.
         ])
         #타겟 값 또한 정규화를 진행하기 위해 사용 
-        self.model = TransformedTargetRegressor(regressor=pipeline, transformer=StandardScaler()) #클래스 모델 변경
+        # self.model = TransformedTargetRegressor(regressor=pipeline, transformer=StandardScaler()) #클래스 모델 변경
         self.mode_class = type(model_class).__name__
         train_X, test_X, train_y, test_y = self.create_train_data(df, outlier=outlier, target=target) #모델을 생성할 데이터 셋이 필요하다
         alpha = self.get_best_alpha(train_X, test_X, train_y, test_y)
@@ -62,36 +62,36 @@ class MyModel():
     
     def create_random_forest(self, df, target='Price', outlier=False,start=2,end=100,gap=5):
         rf_model = Pipeline([
-        ('std_scaler', StandardScaler()),
+        ('max_scaler', MinMaxScaler()),
         ('machine',RandomForestRegressor(bootstrap=True, random_state=24, oob_score=True, max_features='sqrt'))
         ])
         self.mode_class = "RandomForest"
         train_X, test_X, train_y, test_y = self.create_train_data(df, outlier=outlier, target=target) #모델을 생성할
         def tune_param(param):
-            best_param = 2
-            best_mse = float('inf')
-            for i in range(start,end,gap):
-                if param == "depth":
-                    rf_model.set_params(machine__max_depth=i)
-                elif param == "split":
-                    rf_model.set_params(machine__min_samples_split=i)
-                elif param == "max_leaf":
-                    rf_model.set_params(machine__max_leaf_nodes=i)
-                elif param =="min_leaf":
-                    rf_model.set_params(machine__min_samples_leaf=i)
-                rf_model.fit(train_X, train_y)
-                rf_pred = rf_model.predict(test_X)
-                mse = ((test_y - rf_pred) ** 2).mean()
-                if best_mse > mse:
-                    best_mse = mse
-                    best_param = i
-                print(f'param: {param} mse: {mse}, alpha: {i}')
-            return best_param
+            # best_param = 2
+            # best_mse = float('inf')
+            # for i in range(start,end,gap):
+            #     if param == "depth":
+            #         rf_model.set_params(machine__max_depth=i)
+            #     elif param == "split":
+            #         rf_model.set_params(machine__min_samples_split=i)
+            #     elif param == "max_leaf":
+            #         rf_model.set_params(machine__max_leaf_nodes=i)
+            #     elif param =="min_leaf":
+            #         rf_model.set_params(machine__min_samples_leaf=i)
+            #     rf_model.fit(train_X, train_y)
+            #     rf_pred = rf_model.predict(test_X)
+            #     mse = ((test_y - rf_pred) ** 2).mean()
+            #     if best_mse > mse:
+            #         best_mse = mse
+            #         best_param = i
+            #     print(f'param: {param} mse: {mse}, alpha: {i}')
+            # return best_param
 
         best_depth = tune_param("depth")
         best_split = tune_param("split")
         best_min_leaf = tune_param("min_leaf")
-        new_rf = RandomForestRegressor(bootstrap=True, random_state=24, max_depth=best_depth,
+        new_rf = RandomForestRegressor(bootstrap=True, random_state=24, max_depth=2000,
         min_samples_split = best_split, min_samples_leaf=best_min_leaf)
         rf_model.set_params(machine=new_rf)
         self.model = rf_model
@@ -115,7 +115,3 @@ class MyModel():
         file_name = f"{path}{name}.pkl"
         joblib.dump(self.model, file_name)
     
-   
-
-
-
