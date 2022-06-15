@@ -1,4 +1,3 @@
-from platform import machine
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt 
@@ -7,10 +6,10 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import PolynomialFeatures, MinMaxScaler
 from sklearn.model_selection import train_test_split
-from sklearn.compose import TransformedTargetRegressor
 import joblib
 from joblib import dump #모델을 저장한다.
-
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import TimeSeriesSplit
 class MyModel():
     def __init__(self):
         self.X = None #검증 셋 x
@@ -60,43 +59,22 @@ class MyModel():
         self.model.fit(train_X, train_y) #최종 모델 피팅
         return
     
-    def create_random_forest(self, df, target='Price', outlier=False,start=2,end=100,gap=5):
+    def create_random_forest(self, df, target='Price', outlier=False):
         rf_model = Pipeline([
         ('max_scaler', MinMaxScaler()),
-        ('machine',RandomForestRegressor(bootstrap=True, random_state=24, oob_score=True, max_features='sqrt'))
+        ('machine',RandomForestRegressor(bootstrap=True, random_state=24, oob_score=True, max_features="sqrt"))
         ])
-        self.mode_class = "RandomForest"
         train_X, test_X, train_y, test_y = self.create_train_data(df, outlier=outlier, target=target) #모델을 생성할
-        def tune_param(param):
-            # best_param = 2
-            # best_mse = float('inf')
-            # for i in range(start,end,gap):
-            #     if param == "depth":
-            #         rf_model.set_params(machine__max_depth=i)
-            #     elif param == "split":
-            #         rf_model.set_params(machine__min_samples_split=i)
-            #     elif param == "max_leaf":
-            #         rf_model.set_params(machine__max_leaf_nodes=i)
-            #     elif param =="min_leaf":
-            #         rf_model.set_params(machine__min_samples_leaf=i)
-            #     rf_model.fit(train_X, train_y)
-            #     rf_pred = rf_model.predict(test_X)
-            #     mse = ((test_y - rf_pred) ** 2).mean()
-            #     if best_mse > mse:
-            #         best_mse = mse
-            #         best_param = i
-            #     print(f'param: {param} mse: {mse}, alpha: {i}')
-            # return best_param
+        param_grid = [
+            {'machine__max_depth':[100,200,400,800,1600],
+            'machine__min_samples_leaf':[2,4,8,16,32],
+            }
+        ]
+        time_cv = TimeSeriesSplit(n_splits=10)
+        grid_model = GridSearchCV(estimator=rf_model, scoring="neg_mean_squared_error", param_grid=param_grid, cv=time_cv, n_jobs=-1)
+        grid_model.fit(train_X, train_y)
 
-        best_depth = tune_param("depth")
-        best_split = tune_param("split")
-        best_min_leaf = tune_param("min_leaf")
-        new_rf = RandomForestRegressor(bootstrap=True, random_state=24, max_depth=2000,
-        min_samples_split = best_split, min_samples_leaf=best_min_leaf)
-        rf_model.set_params(machine=new_rf)
-        self.model = rf_model
-        self.model.fit(train_X, train_y)
-
+        self.model = grid_model.best_estimator_
 
     def remove_outliers(self, df):
         q_1 = df.apply(lambda x: np.quantile(x, 0.25))
