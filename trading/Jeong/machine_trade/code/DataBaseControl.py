@@ -1,3 +1,4 @@
+from matplotlib import ticker
 import pandas as pd
 import author
 import datetime
@@ -18,9 +19,11 @@ class DataBaseControl():
 
     def create_table_name(self):
         special_char = [':','-','/',"\\","=","^","%"]
+        table_name = self.ticker
         for c in special_char:
             if c in self.ticker: 
                 table_name = self.ticker.replace(c,'')
+
         return f"{table_name}_{self.interval}"
 
     def post_df(self, df):
@@ -33,10 +36,11 @@ class DataBaseControl():
             print("Error occurs in post data to server")
             print(str(e))
     
-    def get_df(self, *columns):
+    def get_df(self, *columns, table_name=None):
         try:
             columns = ','.join(columns)
-            query = f"SELECT {columns} FROM {self.table_name}"
+            if not table_name: table_name = self.table_name
+            query = f"SELECT {columns} FROM {table_name}"
             df = pd.read_sql(query, self.engine)
             df.set_index(df.columns[0], inplace=True)
             return df
@@ -45,7 +49,8 @@ class DataBaseControl():
             print("Can't get data from DB")
             print(e)
 
-    def update_table(self):
+    def update_table(self, table_name=None):
+        if not table_name: table_name = self.table_name
         query = f"SELECT * FROM `{self.table_name}` ORDER BY Date DESC LIMIT 1;"
         now = datetime.datetime.now()
         last_date = pd.read_sql(query, con=self.engine)['Date'].iloc[-1] + datetime.timedelta(days=1) #이 다음날 부터의 데이터가 필요하다.
