@@ -1,95 +1,105 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from sklearn.linear_model import Ridge, Lasso
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import PolynomialFeatures, MinMaxScaler
 from sklearn.model_selection import train_test_split
 import joblib
-from joblib import dump #모델을 저장한다.
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import TimeSeriesSplit
 class MyModel():
-    def __init__(self):
-        self.X = None #검증 셋 x
-        self.y = None #검증 셋 y
-        self.model = None
-        self.mode_class = None
+    class DataConstructor():
+        def remove_outliers(self, df):
+            q_1 = df.apply(lambda x: np.quantile(x, 0.25))
+            q_3 = df.apply(lambda x: np.quantile(x, 0.75))
+            iqr = q_3 - q_1
+            min_p = q_1 - 1.5 * iqr
+            max_p = q_3 + 1.5 * iqr
+            outliers = np.where((df < min_p) | (df > max_p))
+            row, _ = outliers
+            df = df.drop(df.index[row])
+            return df
 
-    def create_train_data(self, df, target='Price', outlier=False):
-        if not outlier:
-            start_size = len(df)
-            df = self.remove_outliers(df)
-            end_size = len(df)
-            print(f"outlier removed {start_size -  end_size}")
-        X = df.drop([target], axis=1).iloc[:-1, ::] #다음날을 예측 해야한다
-        y = df[target].iloc[1:] #비트코인의 봉 평균가.
-        train_X, test_X, train_y, test_y = train_test_split(X, y, test_size=0.3, random_state=24)
-        self.X = test_X
-        self.y = test_y
-        return train_X, test_X, train_y, test_y
+        def create_train_data(self, df, target='Price', outlier=True):
+            if 'time' in df.columns:
+                df.set_index('time',inplace=True)
+            if not outlier:
+                start_size = len(df)
+                df = self.remove_outliers(df)
+                end_size = len(df)
+                print(f"outlier removed {start_size -  end_size}")
+            X = df.drop([target], axis=1).iloc[:-1, ::] #다음날을 예측 해야한다
+            y = df[target].iloc[1:] #비트코인의 봉 평균가.
+            return train_test_split(X, y, test_size=0.3, random_state=24)
 
-    def get_best_alpha(self, train_X, test_X, train_y, test_y): #알파를 튜닝
-        best_alpha = 1
-        best_mse = float('inf')
-        for i in [10000,3000,1000,300,100,30,10,1]:
-            self.model.set_params(regressor__regulator__alpha=i)
-            self.model.fit(train_X, train_y) #바꾼 알파로 다시 피팅해본다.
-            pred = self.model.predict(test_X)
-            mse = ((test_y - pred) ** 2).mean()
-            if best_mse > mse:
-                best_mse = mse
-                best_alpha = i
-            print(f'mse: {mse}, alpha: {i}')
-        return best_alpha
+    def get_gridcv(self, model, param_grid, score = "neg_mean_squared_error"):
+        time_cv = TimeSeriesSplit(n_splits=10)
+        grid_model = GridSearchCV(estimator=model, scoring=score, param_grid=param_grid,
+                                cv=time_cv, n_jobs=-1, verbose=3)
+        return grid_model
 
-    def create_linear_model(self, model_class, df, target='Price', outlier=False):
-        pipeline = Pipeline([
+    def create_ridge(self, X, y):
+        ridge_model = Pipeline([
             ("max_scaler", MinMaxScaler()),
             ("poly_features",PolynomialFeatures(degree=3, include_bias=True)),
-            ('regulator', model_class) #테스트할 모델만 변경해가며 성능을 측정한다.
+            ('estimator', Ridge(fit_intercept=True, random_state=42)) #테스트할 모델만 변경해가며 성능을 측정한다.
         ])
-        #타겟 값 또한 정규화를 진행하기 위해 사용 
-        # self.model = TransformedTargetRegressor(regressor=pipeline, transformer=StandardScaler()) #클래스 모델 변경
-        self.mode_class = type(model_class).__name__
-        train_X, test_X, train_y, test_y = self.create_train_data(df, outlier=outlier, target=target) #모델을 생성할 데이터 셋이 필요하다
-        alpha = self.get_best_alpha(train_X, test_X, train_y, test_y)
-        self.model.set_params(regressor__regulator__alpha=alpha)
-        self.model.fit(train_X, train_y) #최종 모델 피팅
-        return
-    
-    def create_random_forest(self, df, target='Price', outlier=False):
-        rf_model = Pipeline([
-        ('max_scaler', MinMaxScaler()),
-        ('machine',RandomForestRegressor(bootstrap=True, random_state=24, oob_score=True, max_features="sqrt"))
-        ])
-        train_X, test_X, train_y, test_y = self.create_train_data(df, outlier=outlier, target=target) #모델을 생성할
         param_grid = [
-            {'machine__max_depth':[100,200,400,800,1600],
-            'machine__min_samples_leaf':[2,4,8,16,32],
+            {'estimator__alpha':[0.1,1,10,100,300,1000],
+            'estimator__solver':["svd", "cholesky", "lsqr", "sparse_cg", "sag", "saga", "lbfgs"]
             }
         ]
-        time_cv = TimeSeriesSplit(n_splits=10)
-        grid_model = GridSearchCV(estimator=rf_model, scoring="neg_mean_squared_error", param_grid=param_grid, cv=time_cv, n_jobs=-1)
-        grid_model.fit(train_X, train_y)
-
-        self.model = grid_model.best_estimator_
-
-    def remove_outliers(self, df):
-        q_1 = df.apply(lambda x: np.quantile(x, 0.25))
-        q_3 = df.apply(lambda x: np.quantile(x, 0.75))
-        iqr = q_3 - q_1
-        min_p = q_1 - 2.0 * iqr
-        max_p = q_3 + 2.0 * iqr
-        outliers = np.where((df < min_p) | (df > max_p))
-        row, _ = outliers
-        df = df.drop(df.index[row])
-        return df
+        grid_model = self.get_gridcv(ridge_model, param_grid)
+        grid_model.fit(X, y) #최종 모델 피팅
+        return grid_model.best_estimator_
+    
+    def create_lasso(self, X, y):
+        lasso_model = Pipeline([
+            ("max_scaler", MinMaxScaler()),
+            ("poly_features",PolynomialFeatures(degree=3, include_bias=True)),
+            ('estimator', Lasso(fit_intercept=True, random_state=42)) #테스트할 모델만 변경해가며 성능을 측정한다.
+        ])
+        param_grid = [
+            {'estimator__max_iter':[1000, 2000, 3000, 4000],
+            'estimator__tol':[0.0001, 0.001, 0.01, 0.1],
+            'estimator__alpha':[0.1,1,10,100,300,1000]
+            }
+        ]
+        grid_model = self.get_gridcv(lasso_model, param_grid)
+        grid_model.fit(X, y) #최종 모델 피팅
+        return grid_model.best_estimator_
+    
+    def create_random_forest(self, X, y):
+        rf_model = Pipeline([
+        ('max_scaler', MinMaxScaler()),
+        ('estimator',RandomForestClassifier(bootstrap=True, random_state=24, oob_score=True, max_features="sqrt"))
+        ])
+        param_grid = [
+            {'estimator__max_depth':[100,200],
+            'estimator__min_samples_leaf':[2,4,8,16],
+            'estimator__min_samples_split':[2, 5, 10, 20]
+            }
+        ]
+        grid_model = self.get_gridcv(rf_model, param_grid, score='roc_auc')
+        grid_model.fit(X, y)
+        return grid_model.best_estimator_
 
     def save_model(self, time_period):
         name = self.mode_class + str(time_period)
         path = "/Users/jin/Programming/Machine_Learning/All-about-Market/trading/Jeong/machine_trade/model/"
         file_name = f"{path}{name}.pkl"
         joblib.dump(self.model, file_name)
+    
+    def visualize_plot(self, X, y, name): #시계열에 따른 예측도 시각화
+        target = y
+        pred = pd.Series(X, index=target.index)
+        plt.figure(figsize=(12,10))
+        pred.sort_index().plot(label='model')
+        target.sort_index().plot(label='target')
+        plt.suptitle(f'{name}',fontsize=20)
+        mse = ((target - pred) ** 2).mean()
+        plt.title(f'MSE is {mse:.1f}')
+        plt.legend()
     
