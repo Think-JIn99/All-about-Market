@@ -71,7 +71,7 @@ class DataBaseControl():
 
 
 if __name__ == '__main__':
-    db_control = DataBaseControl("raw","GC=F","1d")
+    db_control = DataBaseControl("raw","^OVX","1d")
     start = datetime.datetime(2015,2,28,0,0)
     end = datetime.datetime(2022,5,8,23,59)
     db_control.create_table(start, end)
