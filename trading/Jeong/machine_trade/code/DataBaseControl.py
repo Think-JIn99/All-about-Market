@@ -1,10 +1,13 @@
 from matplotlib import ticker
-from matplotlib.pyplot import table
 import pandas as pd
 import author
 import datetime
 from ApiCaller import ApiCaller
 class DataBaseControl():
+    """
+    class to control db table
+    create_table, update_data, post_data, get_data
+    """
     def __init__(self, db_name) -> None:
         if db_name == "processed":
             self.enigne = author.processed_engine
@@ -15,6 +18,18 @@ class DataBaseControl():
             raise Exception
 
     def create_table_name(self, ticker, interval):
+        """
+        create table_name. some tikcer has some special charater
+        that SQL couldn't understand so use this method to remove 
+        special character and create available table name.
+
+        Args:
+            ticker (str): ticker of asset
+            interval (str("1d","1m"...)): interval of asset data
+
+        Returns:
+            table_name(str): available table name.
+        """
         special_char = [':','-','/',"\\","=","^","%"]
         table_name = ticker
         for c in special_char:
@@ -24,6 +39,13 @@ class DataBaseControl():
         return f"{table_name}_{interval}"
 
     def post_df(self, df, table_name):
+        """
+        post data to DB table
+
+        Args:
+            df (dataframe): data for post
+            table_name (str): name of table
+        """
         try:
             df = df.loc[~df.index.duplicated()]
             df.to_sql(table_name, self.engine, if_exists='append', index=True)
@@ -34,9 +56,18 @@ class DataBaseControl():
             print(str(e))
     
     def get_df(self, *columns, table_name):
+        """
+        get data from table. can choose multiple columns via query
+
+        Args:
+            table_name (str): name of DB table
+            columns(iterable): name of columns to get data from table
+
+        Returns:
+            df(dataframe): data from table
+        """
         try:
             columns = ','.join(columns)
-            # if not table_name: table_name = table_name
             query = f"SELECT {columns} FROM {table_name}"
             df = pd.read_sql(query, self.engine)
             df.set_index(df.columns[0], inplace=True)
@@ -47,6 +78,15 @@ class DataBaseControl():
             print(e)
 
     def update_table(self, ticker, interval):
+        """
+        Update data in DB tables to recent date and post data to table
+
+        Args:
+            ticker (str): ticker of asset
+            interval (str("1d","1m"...)): interval of asset data
+        
+
+        """
         table_name = self.create_table_name(ticker, interval)
         query = f"SELECT * FROM `{table_name}` ORDER BY Date DESC LIMIT 1;"
         now = datetime.datetime.now()
@@ -63,6 +103,16 @@ class DataBaseControl():
             print("No need to Update")
     
     def create_table(self, ticker, interval, start, end):
+        """
+        Call yahoo api and get data after get data post it to DB
+
+        Args:
+            ticker (str): ticker of asset
+            interval (str("1d","1m"...)): interval of asset data
+            start (datetime): start datetime
+            end (datetime): end datetime
+        
+        """
         api_caller = ApiCaller(interval=interval ,ticker=ticker, start = start, end = end)
         data = api_caller.run_api()
         self.post_df(data)
